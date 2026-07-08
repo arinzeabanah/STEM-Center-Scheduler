@@ -1,0 +1,5 @@
+Flask>=3.0
+Flask-SQLAlchemy>=3.1
+python-dotenv>=1.0
+google-api-python-client>=2.100
+google-auth>=2.23

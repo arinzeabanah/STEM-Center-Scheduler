@@ -1,0 +1,26 @@
+"""Application configuration. Values load from environment variables (.env)."""
+
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+class Config:
+    SECRET_KEY = os.getenv("SECRET_KEY", "dev-key-change-in-production")
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "DATABASE_URL", "sqlite:///stem_scheduler.db"
+    )
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Google Calendar API
+    GOOGLE_CREDENTIALS_FILE = os.getenv("GOOGLE_CREDENTIALS_FILE", "credentials.json")
+    GOOGLE_CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID", "primary")
+
+    # Email notifications (SMTP)
+    SMTP_HOST = os.getenv("SMTP_HOST", "")
+    SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER = os.getenv("SMTP_USER", "")
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+    FROM_EMAIL = os.getenv("FROM_EMAIL", "stemcenter@tsc.fl.edu")

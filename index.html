@@ -1,0 +1,74 @@
+"""
+Automated conflict detection.
+
+Two events conflict when they occupy the same room and their time
+intervals overlap. Overlap test for intervals [a_start, a_end) and
+[b_start, b_end):
+
+    a_start < b_end  AND  b_start < a_end
+
+Back-to-back bookings (one ends exactly when the next starts) are
+allowed, which is why the comparisons are strict.
+"""
+
+from datetime import datetime, timedelta
+
+
+class ConflictDetector:
+    #: Minimum gap considered when suggesting alternative slots.
+    SLOT_INCREMENT = timedelta(minutes=30)
+
+    #: STEM Center operating hours used for alternative-slot suggestions.
+    OPEN_HOUR = 8    # 8:00 AM
+    CLOSE_HOUR = 21  # 9:00 PM
+
+    @staticmethod
+    def overlaps(start_a, end_a, start_b, end_b):
+        """Return True when [start_a, end_a) overlaps [start_b, end_b)."""
+        return start_a < end_b and start_b < end_a
+
+    @classmethod
+    def find_conflicts(cls, start, end, existing_events):
+        """Return every event in ``existing_events`` that overlaps [start, end)."""
+        return [
+            event
+            for event in existing_events
+            if cls.overlaps(start, end, event.start_time, event.end_time)
+        ]
+
+    @classmethod
+    def suggest_alternatives(cls, start, end, existing_events, max_suggestions=3):
+        """
+        Suggest up to ``max_suggestions`` conflict-free slots of the same
+        duration on the same day, searching forward from the requested
+        start time in 30-minute increments, then backward.
+        """
+        duration = end - start
+        day_open = start.replace(hour=cls.OPEN_HOUR, minute=0,
+                                 second=0, microsecond=0)
+        day_close = start.replace(hour=cls.CLOSE_HOUR, minute=0,
+                                  second=0, microsecond=0)
+
+        suggestions = []
+
+        # Search forward from the requested slot, then backward from it.
+        candidates = []
+        t = start + cls.SLOT_INCREMENT
+        while t + duration <= day_close:
+            candidates.append(t)
+            t += cls.SLOT_INCREMENT
+        t = start - cls.SLOT_INCREMENT
+        while t >= day_open:
+            candidates.append(t)
+            t -= cls.SLOT_INCREMENT
+
+        for candidate_start in candidates:
+            candidate_end = candidate_start + duration
+            if not cls.find_conflicts(candidate_start, candidate_end,
+                                      existing_events):
+                suggestions.append((candidate_start, candidate_end))
+                if len(suggestions) >= max_suggestions:
+                    break
+
+        suggestions.sort(key=lambda pair: pair[0])
+        return suggestions
